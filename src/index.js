@@ -4,7 +4,7 @@ const crypto = require("crypto");
 const { join, dirname, extname, resolve: pathResolve } = require("path");
 const webpack = require("webpack");
 const MemoryFS = require("memory-fs");
-const terser = require("terser");
+const swc = require("@swc/wasm")
 const tsconfigPaths = require("tsconfig-paths");
 const { loadTsconfig } = require("tsconfig-paths/lib/tsconfig-loader");
 const TsconfigPathsPlugin = require("tsconfig-paths-webpack-plugin");
@@ -21,10 +21,10 @@ const SUPPORTED_EXTENSIONS = [".js", ".json", ".node", ".mjs", ".ts", ".tsx"];
 
 const hashOf = name => {
   return crypto
-		.createHash("sha256")
-		.update(name)
-		.digest("hex")
-		.slice(0, 10);
+    .createHash("sha256")
+    .update(name)
+    .digest("hex")
+    .slice(0, 10);
 }
 
 const defaultPermissions = 0o666;
@@ -32,7 +32,7 @@ const defaultPermissions = 0o666;
 const relocateLoader = eval('require(__dirname + "/loaders/relocate-loader.js")');
 
 module.exports = ncc;
-function ncc (
+function ncc(
   entry,
   {
     cache,
@@ -76,7 +76,7 @@ function ncc (
     extensions: SUPPORTED_EXTENSIONS,
     exportsFields: ["exports"],
     importsFields: ["imports"],
-    conditionNames: ["import", "node", production ? "production": "development"]
+    conditionNames: ["import", "node", production ? "production" : "development"]
   });
 
   const ext = extname(filename);
@@ -133,20 +133,20 @@ function ncc (
     if (tsconfig.resultType === "success") {
       tsconfigMatchPath = tsconfigPaths.createMatchPath(tsconfig.absoluteBaseUrl, tsconfig.paths);
     }
-  } catch (e) {}
+  } catch (e) { }
 
   resolvePlugins.push({
     apply(resolver) {
       const resolve = resolver.resolve;
-      resolver.resolve = function (context, path, request, resolveContext, callback) {
+      resolver.resolve = function(context, path, request, resolveContext, callback) {
         const self = this;
-        resolve.call(self, context, path, request, resolveContext, function (err, innerPath, result) {
+        resolve.call(self, context, path, request, resolveContext, function(err, innerPath, result) {
           if (result) return callback(null, innerPath, result);
           if (err && !err.message.startsWith('Can\'t resolve'))
             return callback(err);
           // Allow .js resolutions to .tsx? from .tsx?
           if (request.endsWith('.js') && context.issuer && (context.issuer.endsWith('.ts') || context.issuer.endsWith('.tsx'))) {
-            return resolve.call(self, context, path, request.slice(0, -3), resolveContext, function (err, innerPath, result) {
+            return resolve.call(self, context, path, request.slice(0, -3), resolveContext, function(err, innerPath, result) {
               if (result) return callback(null, innerPath, result);
               if (err && !err.message.startsWith('Can\'t resolve'))
                 return callback(err);
@@ -227,7 +227,7 @@ function ncc (
                 if (tapInfo.name !== "CommonJsPlugin") {
                   return tapInfo;
                 }
-                tapInfo.fn = () => {};
+                tapInfo.fn = () => { };
                 return tapInfo;
               }
             });
@@ -245,8 +245,7 @@ function ncc (
     }
   ]
 
-  if (typeof license === 'string' && license.length > 0)
-  {
+  if (typeof license === 'string' && license.length > 0) {
     plugins.push(new LicenseWebpackPlugin({
       outputFilename: license
     }));
@@ -320,7 +319,7 @@ function ncc (
     },
     // https://github.com/vercel/ncc/pull/29#pullrequestreview-177152175
     node: false,
-    externals ({ context, request, dependencyType }, callback) {
+    externals({ context, request, dependencyType }, callback) {
       const external = externalMap.get(request);
       if (external) return callback(null, `${dependencyType === 'esm' && esm ? 'module' : 'node-commonjs'} ${external}`);
       return callback();
@@ -399,10 +398,10 @@ function ncc (
         });
       });
     })
-    .then(finalizeHandler, function (err) {
-      compilationStack.pop();
-      throw err;
-    });
+      .then(finalizeHandler, function(err) {
+        compilationStack.pop();
+        throw err;
+      });
   }
   else {
     if (typeof watch === 'object') {
@@ -429,7 +428,7 @@ function ncc (
     });
     let closed = false;
     return {
-      close () {
+      close() {
         if (!watcher)
           throw new Error('No watcher to close.');
         if (closed)
@@ -437,7 +436,7 @@ function ncc (
         closed = true;
         watcher.close();
       },
-      handler (handler) {
+      handler(handler) {
         if (watchHandler)
           throw new Error('Watcher handler already provided.');
         watchHandler = handler;
@@ -446,7 +445,7 @@ function ncc (
           cachedResult = null;
         }
       },
-      rebuild (handler) {
+      rebuild(handler) {
         if (rebuildHandler)
           throw new Error('Rebuild handler already provided.');
         rebuildHandler = handler;
@@ -454,7 +453,7 @@ function ncc (
     };
   }
 
-  async function finalizeHandler (stats) {
+  async function finalizeHandler(stats) {
     const assets = Object.create(null);
     getFlatFiles(mfs.data, assets, relocateLoader.getAssetMeta, fullTsconfig);
     // filter symlinks to existing assets
@@ -475,13 +474,15 @@ function ncc (
     if (minify) {
       let result;
       try {
-        result = await terser.minify(code, {
+        result = await swc.minify(code, {
           module: esm,
           compress: false,
           mangle: {
             keep_classnames: true,
             keep_fnames: true
           },
+          keep_classnames: true,
+          keep_fnames: true,
           sourceMap: map ? {
             content: map,
             filename,
@@ -577,7 +578,7 @@ function ncc (
       const subbuildAssets = [];
       for (const asset of Object.keys(assets)) {
         if (!asset.endsWith('.js') && !asset.endsWith('.cjs') && !asset.endsWith('.ts') && !asset.endsWith('.mjs') ||
-            asset.endsWith('.cache.js') || asset.endsWith('.cache.cjs') || asset.endsWith('.cache.ts') || asset.endsWith('.cache.mjs') || asset.endsWith('.d.ts')) {
+          asset.endsWith('.cache.js') || asset.endsWith('.cache.cjs') || asset.endsWith('.cache.ts') || asset.endsWith('.cache.mjs') || asset.endsWith('.d.ts')) {
           existingAssetNames.push(asset);
           continue;
         }
@@ -639,7 +640,7 @@ function getFlatFiles(mfsData, output, getAssetMeta, tsconfig, curBase = "") {
     // file
     else if (!curPath.endsWith("/")) {
       const meta = getAssetMeta(curPath.slice(1)) || {};
-      if(curPath.endsWith(".d.ts")) {
+      if (curPath.endsWith(".d.ts")) {
         const outDir = tsconfig.compilerOptions.outDir ? pathResolve(tsconfig.compilerOptions.outDir) : pathResolve('dist');
         curPath = curPath
           .replace(outDir, "")
