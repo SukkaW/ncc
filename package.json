@@ -94,7 +94,6 @@
     "source-map-support": "^0.5.9",
     "stripe": "^8.167.0",
     "swig": "^1.4.2",
-    "terser": "^5.19.3",
     "the-answer": "^1.0.0",
     "tiny-json-http": "^7.5.1",
     "ts-loader": "^9.4.4",
@@ -108,5 +107,9 @@
     "web-vitals": "^0.2.4",
     "webpack": "5.76.0",
     "when": "^3.7.8"
+  },
+  "packageManager": "yarn@1.22.21+sha1.1959a18351b811cdeedbd484a8f86c3cc3bbaf72",
+  "dependencies": {
+    "@swc/wasm": "^1.5.2"
   }
 }
